@@ -47,8 +47,8 @@ def get_text_chunks(text):
     chunks = text_splitter.split_text(text)
     return chunks
 
-def get_vector_store(text_chunks, api_key):
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=api_key)
+def get_vector_store(text_chunks, st.secrets):
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=st.secrets)
     vector_store = FAISS.from_texts(text_chunks, embedding=embeddings)
     vector_store.save_local("faiss_index")
 
@@ -61,13 +61,13 @@ def get_conversational_chain():
 
     Answer:
     """
-    model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.3, google_api_key=api_key)
+    model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.3, google_api_key=st.secrets)
     prompt = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
     chain = load_qa_chain(model, chain_type="stuff", prompt=prompt)
     return chain
 
-def user_input(user_question, api_key):
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=api_key)
+def user_input(user_question, st.secrets):
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_st.secrets)
     new_db = FAISS.load_local("faiss_index", embeddings)
     docs = new_db.similarity_search(user_question)
     chain = get_conversational_chain()
@@ -79,17 +79,17 @@ def main():
 
     user_question = st.text_input("Ask a Question from the PDF Files", key="user_question")
 
-    if user_question and api_key:  # Ensure API key and user question are provided
-        user_input(user_question, api_key)
+    if user_question and st.secrets:  # Ensure API key and user question are provided
+        user_input(user_question, st.secrets)
 
     with st.sidebar:
         st.title("Menu:")
         pdf_docs = st.file_uploader("Upload your PDF Files and Click on the Submit & Process Button", accept_multiple_files=True, key="pdf_uploader")
-        if st.button("Submit & Process", key="process_button") and api_key:  # Check if API key is provided before processing
+        if st.button("Submit & Process", key="process_button") and st.secrets:  # Check if API key is provided before processing
             with st.spinner("Processing..."):
                 raw_text = get_pdf_text(pdf_docs)
                 text_chunks = get_text_chunks(raw_text)
-                get_vector_store(text_chunks, api_key)
+                get_vector_store(text_chunks, st.secrets)
                 st.success("Done")
 
 if __name__ == "__main__":
